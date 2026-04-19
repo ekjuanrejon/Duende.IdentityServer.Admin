@@ -1,15 +1,9 @@
 ﻿// Copyright (c) Jan Škoruba. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Net;
-using NetIPNetwork = System.Net.IPNetwork;
-using Duende.IdentityServer;
 using Duende.IdentityServer.Configuration;
 using Duende.IdentityServer.EntityFramework.Storage;
+using IdentityModel;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
@@ -20,13 +14,10 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using IdentityModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.Tokens;
-using System.IO;
 using Skoruba.Duende.IdentityServer.Admin.EntityFramework.Configuration.Configuration;
 using Skoruba.Duende.IdentityServer.Admin.EntityFramework.Configuration.PostgreSQL;
 using Skoruba.Duende.IdentityServer.Admin.EntityFramework.Configuration.SqlServer;
@@ -38,9 +29,14 @@ using Skoruba.Duende.IdentityServer.STS.Identity.Configuration;
 using Skoruba.Duende.IdentityServer.STS.Identity.Configuration.ApplicationParts;
 using Skoruba.Duende.IdentityServer.STS.Identity.Configuration.Constants;
 using Skoruba.Duende.IdentityServer.STS.Identity.Configuration.Interfaces;
-using Configuration = Skoruba.Duende.IdentityServer.STS.Identity.Configuration;
 using Skoruba.Duende.IdentityServer.STS.Identity.Helpers.Localization;
 using Skoruba.Duende.IdentityServer.STS.Identity.Services;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Net;
+using NetIPNetwork = System.Net.IPNetwork;
 
 namespace Skoruba.Duende.IdentityServer.STS.Identity.Helpers
 {
@@ -342,7 +338,11 @@ namespace Skoruba.Duende.IdentityServer.STS.Identity.Helpers
                     AuthenticationHelpers.CheckSameSite(cookieContext.Context, cookieContext.CookieOptions);
             });
 
-
+            services.ConfigureApplicationCookie(opts =>
+            {
+                opts.Cookie.SameSite = SameSiteMode.None;
+                opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            });
 
             services.Configure<IISOptions>(iis =>
             {
