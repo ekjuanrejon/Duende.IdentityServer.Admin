@@ -5,7 +5,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/components/ui/use-toast";
-import { useMutation, useQueryClient } from "react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createUser, updateUser } from "@/services/UserServices";
 import { UserFormData, formSchema } from "../Common/UserSchema";
 import { UsersUrl } from "@/routing/Urls";
@@ -15,11 +15,20 @@ import UserClaimsTab from "./Tabs/UserClaimsTab";
 import UserRolesTab from "./Tabs/UserRolesTab";
 import ExternalApplicationsTab from "./Tabs/ExternalApplicationsTab";
 import UserPersistedGrantsTab from "./Tabs/UserPersistedGrantsTab";
+import ChangePasswordTab from "./Tabs/ChangePasswordTab";
 import { queryKeys } from "@/services/QueryKeys";
 import Hoorey from "@/components/Hoorey/Hoorey";
 import useModal from "@/hooks/modalHooks";
 import UserDeleteDialog from "./UserDeleteDialog";
-import { Trash2, Info, Tag, Users, Globe, KeySquare } from "lucide-react";
+import {
+  Trash2,
+  Info,
+  Tag,
+  Users,
+  Globe,
+  KeySquare,
+  ShieldCheck,
+} from "lucide-react";
 import {
   useConfirmUnsavedChanges,
   useNavigateWithBlocker,
@@ -50,28 +59,26 @@ const UserForm: React.FC<Props> = ({ mode, userId, defaultValues }) => {
   const navigate = useNavigateWithBlocker(form);
   const { DialogCmp } = useConfirmUnsavedChanges(form.formState.isDirty);
 
-  const mutation = useMutation(
-    (data: UserFormData) =>
+  const mutation = useMutation({
+    mutationFn: (data: UserFormData) =>
       mode === UserFormMode.Create
         ? createUser(data)
         : updateUser(userId!, data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(queryKeys.users);
-        queryClient.invalidateQueries(queryKeys.user);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryKeys.users] });
+      queryClient.invalidateQueries({ queryKey: [queryKeys.user] });
 
-        navigate(UsersUrl);
+      navigate(UsersUrl);
 
-        toast({
-          title: <Hoorey />,
-          description:
-            mode === UserFormMode.Create
-              ? t("User.Actions.Created")
-              : t("User.Actions.Updated"),
-        });
-      },
-    }
-  );
+      toast({
+        title: <Hoorey />,
+        description:
+          mode === UserFormMode.Create
+            ? t("User.Actions.Created")
+            : t("User.Actions.Updated"),
+      });
+    },
+  });
 
   const showDelete =
     mode === UserFormMode.Edit && !!userId && !!defaultValues.userName;
@@ -123,6 +130,13 @@ const UserForm: React.FC<Props> = ({ mode, userId, defaultValues }) => {
                     <KeySquare className="h-4 w-4" />
                     {t("User.Tabs.PersistedGrants")}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="password"
+                    className="flex items-center gap-2"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    {t("User.Tabs.Password")}
+                  </TabsTrigger>
                 </TabsList>
 
                 <div className="inline-flex">
@@ -153,6 +167,9 @@ const UserForm: React.FC<Props> = ({ mode, userId, defaultValues }) => {
               </TabsContent>
               <TabsContent value="persistedgrants">
                 <UserPersistedGrantsTab userId={userId!} />
+              </TabsContent>
+              <TabsContent value="password">
+                <ChangePasswordTab userId={userId!} />
               </TabsContent>
             </Tabs>
           ) : (

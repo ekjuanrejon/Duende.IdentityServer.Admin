@@ -13,13 +13,13 @@ Modern admin UI for **Duende IdentityServer** and **ASP.NET Core Identity**.
 
 ## Versions
 
-- ✅ **Stable (production): v2.7.0**  
-  https://github.com/skoruba/Duende.IdentityServer.Admin/tree/release/2.7.0
+- 🎉 **Next generation Admin UI: v3.0.0-rc2**
+  - The upcoming stable v3 release is now available as a release candidate.
+  - Built with React, TypeScript, Tailwind CSS, Tailwind CSS, shadcn/ui, and a .NET 10 REST API backend.
+  - Includes new monitoring features, wizard flows, and many UX improvements.
 
-- 🎉 **Next generation (v3 – preview)** – current prerelease: `3.0.0-preview.22`
-  - React + TypeScript + Tailwind CSS + shadcn/ui
-  - .NET 10 backend REST API
-  - New monitoring and wizard flows
+- 📦 **Previous stable version: v2.7.0**
+  - Still available for existing v2 installations on the `release/2.7.0` branch.
 
 ---
 
@@ -96,7 +96,7 @@ Define and track configuration rules for clients, API resources, and identity re
 ### 1. Install the template
 
 ```sh
-dotnet new install Skoruba.Duende.IdentityServer.Admin.Templates::3.0.0-preview.22
+dotnet new install Skoruba.Duende.IdentityServer.Admin.Templates::3.0.0-rc2
 ```
 
 ### 2. Create a new project
@@ -595,6 +595,42 @@ Enable or disable user registration:
 
 ---
 
+## 🧩 Identity Mapping Customization
+
+Identity DTO/entity mapping in `Skoruba.Duende.IdentityServer.Admin.BusinessLogic.Identity` is handled by `IdentityDataMapper`.
+
+By default:
+
+- Standard ASP.NET Core Identity fields are mapped explicitly.
+- Additional custom fields are mapped automatically when DTO and entity use the same property name and compatible type.
+- Internal Identity fields (`PasswordHash`, `SecurityStamp`, `ConcurrencyStamp`, `NormalizedUserName`, `NormalizedEmail`) are protected during DTO -> entity updates.
+
+### 1. Same-name custom properties
+
+If your custom `UserDto` / `RoleDto` and `IdentityUser` / `IdentityRole` share the same custom property name, no extra configuration is needed.
+
+### 2. Different property names (customizers)
+
+When names differ, implement customizers and register them in DI:
+
+```csharp
+services
+    .AddAdminAspNetIdentityServices<...>()
+    .AddIdentityUserMappingCustomizer<ApplicationUserDto, ApplicationUser, ApplicationUserMappingCustomizer>()
+    .AddIdentityRoleMappingCustomizer<ApplicationRoleDto, ApplicationRole, ApplicationRoleMappingCustomizer>();
+```
+
+Customizers implement:
+
+- `IIdentityUserMappingCustomizer<TUserDto, TUser>`
+- `IIdentityRoleMappingCustomizer<TRoleDto, TRole>`
+
+### 3. Full mapper override
+
+If you need full control, replace the default `IIdentityDataMapper<...>` registration in DI with your own implementation after calling `AddAdminAspNetIdentityServices`.
+
+---
+
 ## 📚 Solution Overview
 
 The solution contains **unit and integration tests** for all major components.
@@ -640,6 +676,42 @@ The solution contains **unit and integration tests** for all major components.
 - `Skoruba.Duende.IdentityServer.Admin.UnitTests` – Unit tests
 - `Skoruba.Duende.IdentityServer.Admin.Api.IntegrationTests` – API integration tests
 - `Skoruba.Duende.IdentityServer.STS.IntegrationTests` – STS integration tests
+- `Skoruba.Duende.IdentityServer.Admin.UI.Client.IntegrationTests` – Playwright UI integration tests (OIDC login flow + Admin UI assertions)
+
+### UI Integration Tests (Playwright)
+
+The UI E2E test project is located in:
+
+- `tests/Skoruba.Duende.IdentityServer.Admin.UI.Client.IntegrationTests`
+
+To run it:
+
+```sh
+cd tests/Skoruba.Duende.IdentityServer.Admin.UI.Client.IntegrationTests
+npm install
+npx playwright install chromium
+npm test
+```
+
+Default expected runtime services:
+
+- STS: `https://localhost:44310`
+- Admin API: `https://localhost:44302`
+- Admin UI host:
+  - Kestrel-hosted app: `https://localhost:7127`
+  - Vite dev server / default `E2E_ADMIN_URL` for Playwright: `https://localhost:50445`
+
+> **Important:** The seeded OIDC client redirect URIs and CORS origins in
+> `src/Skoruba.Duende.IdentityServer.Admin.Api/identityserverdata.json` use
+> `https://localhost:50445` by default. If you run the Admin UI on
+> `https://localhost:7127` instead, update the client configuration (or the
+> Playwright `E2E_ADMIN_URL`) so redirects and CORS validation continue to
+> work.
+
+The tests load credentials and expected client data from seed files:
+
+- `src/Skoruba.Duende.IdentityServer.Admin.Api/identitydata.json`
+- `src/Skoruba.Duende.IdentityServer.Admin.Api/identityserverdata.json`
 
 ---
 
@@ -651,16 +723,12 @@ For detailed release history and upcoming features, see [CHANGELOG.md](CHANGELOG
 
 ### 3.1.0
 
-- Passkeys support ([251](https://github.com/skoruba/Duende.IdentityServer.Admin/issues/251))
-
-### 3.2.0
-
 - Add support for importing/exporting IdentityServer data in JSON format ([20](https://github.com/skoruba/Duende.IdentityServer.Admin/issues/20))
 
 ### 4.0.0
 
 - DTO refactoring
-- Removal of AutoMapper and FluentAssertions
+- Removal of FluentAssertions
 - Additional translations for the Admin UI
 
 ### 5.0.0
